@@ -69,10 +69,10 @@ export const GoogleAuthModal = ({ isOpen, onClose, onSelectAccount }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       {/* Google OAuth Dialog Box */}
       <div 
-        className="w-full max-w-sm sm:max-w-md rounded-3xl bg-white text-slate-800 shadow-2xl overflow-hidden border border-slate-200 relative animate-fadeIn"
+        className="w-full max-w-sm sm:max-w-md rounded-t-3xl sm:rounded-3xl bg-white text-slate-800 shadow-2xl overflow-hidden border border-slate-200 relative animate-fadeIn max-h-[92dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}

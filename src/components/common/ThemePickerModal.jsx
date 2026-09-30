@@ -8,9 +8,9 @@ export const ThemePickerModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
       <div 
-        className={`w-full max-w-lg rounded-3xl p-6 border shadow-2xl transition-all duration-300 ${theme.cardBg}`}
+        className={`w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 border-t sm:border shadow-2xl transition-all duration-300 max-h-[92dvh] overflow-y-auto ${theme.cardBg}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

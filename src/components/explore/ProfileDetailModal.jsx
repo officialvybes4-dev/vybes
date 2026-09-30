@@ -9,9 +9,7 @@ import {
   GraduationCap, 
   ShieldCheck, 
   ChevronLeft, 
-  ChevronRight,
-  Camera,
-  Sparkles
+  ChevronRight
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -54,206 +52,210 @@ export const ProfileDetailModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
       <div 
-        className={`w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl border shadow-2xl relative ${theme.cardBg}`}
+        className={`w-full max-w-2xl h-[94dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border-t sm:border shadow-2xl relative flex flex-col ${theme.cardBg}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Floating Close Button */}
         <button
           onClick={() => setDetailUser(null)}
-          className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 transition-all hover:scale-105"
+          className="absolute top-3 right-3 z-30 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 transition-transform active:scale-90"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Photo Carousel Area */}
-        <div className="relative w-full h-96 sm:h-[450px] bg-black overflow-hidden group">
-          <img
-            src={photos[photoIndex]}
-            alt={detailUser.name}
-            className="w-full h-full object-cover transition-opacity duration-300"
-            onClick={() => setPreviewImage(photos[photoIndex])}
-          />
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Photo Carousel Area */}
+          <div className="relative w-full h-80 sm:h-[420px] bg-black overflow-hidden group">
+            <img
+              src={photos[photoIndex]}
+              alt={detailUser.name}
+              className="w-full h-full object-cover transition-opacity duration-300"
+              onClick={() => setPreviewImage(photos[photoIndex])}
+            />
 
-          {/* Top Progress Bars for Photos */}
-          {photos.length > 1 && (
-            <div className="absolute top-3 left-4 right-16 flex items-center gap-1.5 z-10">
-              {photos.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                    i === photoIndex ? 'bg-white shadow-sm' : 'bg-white/30'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Carousel Arrows */}
-          {photos.length > 1 && (
-            <>
-              <button
-                onClick={handlePrevPhoto}
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm opacity-80 group-hover:opacity-100 transition-opacity"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleNextPhoto}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm opacity-80 group-hover:opacity-100 transition-opacity"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </>
-          )}
-
-          {/* Gradient Overlay at Bottom of Photo */}
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent flex items-end p-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-                  {detailUser.name}, {detailUser.age}
-                </h2>
-                {detailUser.verified && (
-                  <span className="p-1 rounded-full bg-blue-500 text-white" title="Verified Profile">
-                    <ShieldCheck className="w-4 h-4" />
-                  </span>
-                )}
-                {detailUser.online && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Online
-                  </span>
-                )}
-              </div>
-              <p className="flex items-center gap-1.5 text-xs text-gray-300 mt-1">
-                <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                <span>{detailUser.location} ({detailUser.distance})</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Details & Bio Body */}
-        <div className="p-6 space-y-6">
-
-          {/* Bio */}
-          <div>
-            <h3 className="text-xs uppercase font-bold tracking-wider text-gray-400 mb-2">About Me</h3>
-            <p className="text-sm sm:text-base text-gray-200 leading-relaxed font-normal">
-              {detailUser.bio}
-            </p>
-          </div>
-
-          {/* Work & Education */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {detailUser.occupation && (
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-                <Briefcase className="w-5 h-5 text-rose-400" />
-                <div>
-                  <p className="text-xs font-semibold text-white">{detailUser.occupation}</p>
-                  {detailUser.company && <p className="text-[10px] text-gray-400">{detailUser.company}</p>}
-                </div>
-              </div>
-            )}
-            {detailUser.education && (
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-                <GraduationCap className="w-5 h-5 text-purple-400" />
-                <div>
-                  <p className="text-xs font-semibold text-white">{detailUser.education}</p>
-                  <p className="text-[10px] text-gray-400">Graduate</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Interests Pills */}
-          {detailUser.interests && detailUser.interests.length > 0 && (
-            <div>
-              <h3 className="text-xs uppercase font-bold tracking-wider text-gray-400 mb-2">Interests & Passions</h3>
-              <div className="flex flex-wrap gap-2">
-                {detailUser.interests.map((tag, i) => (
-                  <span
+            {/* Top Progress Bars for Photos */}
+            {photos.length > 1 && (
+              <div className="absolute top-2.5 left-3 right-14 flex items-center gap-1 z-20">
+                {photos.map((_, i) => (
+                  <div
                     key={i}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border ${theme.highlightBadge}`}
-                  >
-                    #{tag}
-                  </span>
+                    className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                      i === photoIndex ? 'bg-white shadow-md' : 'bg-white/35'
+                    }`}
+                  />
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Prompts Q&A */}
-          {detailUser.prompts && detailUser.prompts.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs uppercase font-bold tracking-wider text-gray-400">Dating Prompts</h3>
-              {detailUser.prompts.map((p, i) => (
-                <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
-                  <p className="text-xs font-bold text-rose-400">{p.question}</p>
-                  <p className="text-sm text-gray-200 italic">"{p.answer}"</p>
+            {/* Carousel Arrows */}
+            {photos.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrevPhoto}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleNextPhoto}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
+            {/* Gradient Overlay at Bottom of Photo */}
+            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent flex items-end p-4 sm:p-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl sm:text-2xl font-black text-white">
+                    {detailUser.name}, {detailUser.age}
+                  </h2>
+                  {detailUser.verified && (
+                    <span className="p-0.5 rounded-full bg-blue-500 text-white" title="Verified Profile">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                  {detailUser.online && (
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Online
+                    </span>
+                  )}
                 </div>
-              ))}
+                <p className="flex items-center gap-1 text-[11px] text-gray-300 mt-0.5">
+                  <MapPin className="w-3 h-3 text-rose-400" />
+                  <span>{detailUser.location} ({detailUser.distance})</span>
+                </p>
+              </div>
             </div>
-          )}
-
-          {/* Lifestyle Info */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/10 text-center">
-            {detailUser.zodiac && (
-              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-                <p className="text-[10px] text-gray-400 uppercase">Zodiac</p>
-                <p className="text-xs font-bold text-white mt-0.5">{detailUser.zodiac}</p>
-              </div>
-            )}
-            {detailUser.height && (
-              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-                <p className="text-[10px] text-gray-400 uppercase">Height</p>
-                <p className="text-xs font-bold text-white mt-0.5">{detailUser.height}</p>
-              </div>
-            )}
-            {detailUser.drinking && (
-              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-                <p className="text-[10px] text-gray-400 uppercase">Drinks</p>
-                <p className="text-xs font-bold text-white mt-0.5">{detailUser.drinking}</p>
-              </div>
-            )}
-            {detailUser.lookingFor && (
-              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-                <p className="text-[10px] text-gray-400 uppercase">Looking For</p>
-                <p className="text-xs font-bold text-white mt-0.5 truncate">{detailUser.lookingFor}</p>
-              </div>
-            )}
           </div>
 
-          {/* Action Footer Buttons */}
-          <div className="sticky bottom-0 pt-4 pb-2 bg-inherit border-t border-white/10 flex items-center gap-3">
-            <button
-              onClick={handleSuperLike}
-              className="p-3.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 transition-all active:scale-95"
-              title="Super Like with Confetti"
-            >
-              <Star className="w-5 h-5 fill-amber-400" />
-            </button>
+          {/* Details Body */}
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            
+            {/* Bio */}
+            <div>
+              <h3 className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-gray-400 mb-1.5">About Me</h3>
+              <p className="text-xs sm:text-sm text-gray-200 leading-relaxed font-normal bg-white/5 p-3 sm:p-4 rounded-2xl border border-white/10">
+                {detailUser.bio}
+              </p>
+            </div>
 
-            <button
-              onClick={handleLike}
-              className="p-3.5 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 transition-all active:scale-95"
-              title="Like Profile"
-            >
-              <Heart className="w-5 h-5 fill-rose-500" />
-            </button>
+            {/* Work & Education */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {detailUser.occupation && (
+                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2.5">
+                  <Briefcase className="w-4 h-4 text-rose-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{detailUser.occupation}</p>
+                    {detailUser.company && <p className="text-[10px] text-gray-400 truncate">{detailUser.company}</p>}
+                  </div>
+                </div>
+              )}
+              {detailUser.education && (
+                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2.5">
+                  <GraduationCap className="w-4 h-4 text-purple-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{detailUser.education}</p>
+                    <p className="text-[10px] text-gray-400">Graduate</p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-            <button
-              onClick={handleChat}
-              className={`flex-1 py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 ${theme.buttonClass} transition-transform active:scale-95`}
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span>Instant Direct Chat</span>
-            </button>
+            {/* Interests Pills */}
+            {detailUser.interests && detailUser.interests.length > 0 && (
+              <div>
+                <h3 className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-gray-400 mb-1.5">Interests</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {detailUser.interests.map((tag, i) => (
+                    <span
+                      key={i}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${theme.highlightBadge}`}
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Prompts Q&A */}
+            {detailUser.prompts && detailUser.prompts.length > 0 && (
+              <div className="space-y-2.5">
+                <h3 className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-gray-400">Dating Prompts</h3>
+                {detailUser.prompts.map((p, i) => (
+                  <div key={i} className="p-3 sm:p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                    <p className="text-xs font-bold text-rose-400">{p.question}</p>
+                    <p className="text-xs sm:text-sm text-gray-200 italic leading-relaxed">"{p.answer}"</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Lifestyle Info Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/10 text-center">
+              {detailUser.zodiac && (
+                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[9px] text-gray-400 uppercase font-bold">Zodiac</p>
+                  <p className="text-xs font-bold text-white mt-0.5">{detailUser.zodiac}</p>
+                </div>
+              )}
+              {detailUser.height && (
+                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[9px] text-gray-400 uppercase font-bold">Height</p>
+                  <p className="text-xs font-bold text-white mt-0.5">{detailUser.height}</p>
+                </div>
+              )}
+              {detailUser.drinking && (
+                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[9px] text-gray-400 uppercase font-bold">Drinks</p>
+                  <p className="text-xs font-bold text-white mt-0.5">{detailUser.drinking}</p>
+                </div>
+              )}
+              {detailUser.lookingFor && (
+                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-[9px] text-gray-400 uppercase font-bold">Looking For</p>
+                  <p className="text-xs font-bold text-white mt-0.5 truncate">{detailUser.lookingFor}</p>
+                </div>
+              )}
+            </div>
+
           </div>
-
         </div>
+
+        {/* Docked Action Footer (Thumb Friendly with Safe Area) */}
+        <div className="p-3 sm:p-4 bg-black/40 backdrop-blur-xl border-t border-white/10 flex items-center gap-2 sm:gap-3 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button
+            onClick={handleSuperLike}
+            className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 transition-transform active:scale-90"
+            title="Super Like"
+          >
+            <Star className="w-5 h-5 fill-amber-400" />
+          </button>
+
+          <button
+            onClick={handleLike}
+            className="p-3 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 transition-transform active:scale-90"
+            title="Like Profile"
+          >
+            <Heart className="w-5 h-5 fill-rose-500" />
+          </button>
+
+          <button
+            onClick={handleChat}
+            className={`flex-1 py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 ${theme.buttonClass} transition-transform active:scale-95 shadow-lg shadow-rose-500/30`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Instant Direct Chat</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );

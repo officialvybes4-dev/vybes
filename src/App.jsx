@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/common/Navbar';
@@ -20,6 +20,17 @@ const DatingAppContent = () => {
 
   const [isThemePickerOpen, setIsThemePickerOpen] = useState(false);
   const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
+  const [isMobileRoomActive, setIsMobileRoomActive] = useState(false);
+  const [isRealMobileScreen, setIsRealMobileScreen] = useState(false);
+
+  useEffect(() => {
+    const checkWidth = () => {
+      setIsRealMobileScreen(window.innerWidth < 768);
+    };
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+    return () => window.removeEventListener('resize', checkWidth);
+  }, []);
 
   // Render the current view
   const renderCurrentView = () => {
@@ -27,7 +38,7 @@ const DatingAppContent = () => {
       case 'explore':
         return <ExplorePage />;
       case 'chats':
-        return <ChatPage />;
+        return <ChatPage onMobileRoomChange={setIsMobileRoomActive} />;
       case 'likes':
         return <LikesPage />;
       case 'profile':
@@ -42,33 +53,36 @@ const DatingAppContent = () => {
     }
   };
 
+  // If user is on an actual mobile device, always render native full screen without the desktop mockup frame
+  const showDeviceFrame = deviceMode === 'mobile-frame' && !isRealMobileScreen;
+
   return (
     <div className={`min-h-screen w-full transition-colors duration-500 font-sans selection:bg-rose-500 selection:text-white ${theme.bgClass}`}>
       
-      {/* Device Frame Simulator Container (When mobile frame mode is enabled) */}
-      {deviceMode === 'mobile-frame' ? (
-        <div className="min-h-screen py-6 px-4 flex flex-col items-center justify-center bg-black/90">
+      {/* Device Frame Simulator Container (Desktop Testing Only) */}
+      {showDeviceFrame ? (
+        <div className="min-h-screen py-6 px-4 flex flex-col items-center justify-center bg-black/95">
           
           {/* Top Frame Controller */}
           <div className="mb-4 flex items-center gap-3">
             <span className="text-xs text-gray-300 font-medium flex items-center gap-1.5">
               <Smartphone className="w-4 h-4 text-rose-400" />
-              <span>iPhone 16 Pro Preview Frame</span>
+              <span>iPhone 16 Pro Preview Simulator</span>
             </span>
             <button
               onClick={() => setDeviceMode('web')}
               className="px-3 py-1 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors"
             >
-              Switch to Full Desktop Web
+              Switch to Desktop Web
             </button>
           </div>
 
           {/* iPhone Frame Simulator */}
-          <div className="w-[410px] h-[860px] rounded-[52px] border-[10px] border-zinc-800 shadow-[0_25px_80px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col bg-slate-950 ring-1 ring-white/20">
+          <div className="w-[390px] h-[844px] rounded-[50px] border-[9px] border-zinc-800 shadow-[0_25px_80px_rgba(0,0,0,0.9)] overflow-hidden relative flex flex-col bg-slate-950 ring-1 ring-white/20">
             {/* Dynamic Island / Notch */}
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-50 flex items-center justify-between px-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-white/20"></div>
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-950/60 ring-1 ring-cyan-500/40"></div>
+            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-full z-50 flex items-center justify-between px-3">
+              <div className="w-2 h-2 rounded-full bg-slate-900 border border-white/20"></div>
+              <div className="w-2 h-2 rounded-full bg-blue-950/60 ring-1 ring-cyan-500/40"></div>
             </div>
 
             {/* Inner Phone Viewport */}
@@ -77,29 +91,30 @@ const DatingAppContent = () => {
                 onOpenThemePicker={() => setIsThemePickerOpen(true)}
                 onOpenPersonaModal={() => setIsPersonaModalOpen(true)}
               />
-              <main className="flex-1 overflow-y-auto pb-16">
+              <main className="flex-1 overflow-y-auto">
                 {renderCurrentView()}
               </main>
-              <BottomNav />
+              <BottomNav isHidden={activeTab === 'chats' && isMobileRoomActive} />
             </div>
 
             {/* Home Indicator Bar */}
-            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/40 rounded-full z-50"></div>
+            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-28 h-1 bg-white/40 rounded-full z-50"></div>
           </div>
         </div>
       ) : (
-        /* Full Responsive Web Layout */
+        /* Full Native App / Responsive Web Layout */
         <div className="min-h-screen flex flex-col">
           <Navbar
             onOpenThemePicker={() => setIsThemePickerOpen(true)}
             onOpenPersonaModal={() => setIsPersonaModalOpen(true)}
           />
 
-          <main className="flex-1 pb-20 md:pb-6">
+          <main className="flex-1 pb-16 md:pb-6">
             {renderCurrentView()}
           </main>
 
-          <BottomNav />
+          {/* BottomNav hides automatically when inside a direct mobile chat room */}
+          <BottomNav isHidden={activeTab === 'chats' && isMobileRoomActive} />
         </div>
       )}
 

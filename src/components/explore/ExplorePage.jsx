@@ -42,7 +42,7 @@ export const ExplorePage = () => {
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-2 sm:py-6">
       
       {/* Top Controls & Search */}
       <FilterBar
@@ -56,9 +56,7 @@ export const ExplorePage = () => {
 
       {/* Main View Area */}
       {exploreView === 'swipe' ? (
-        <div className="py-2">
-          <SwipeDeck users={filteredUsers} />
-        </div>
+        <SwipeDeck users={filteredUsers} />
       ) : (
         <ProfileGrid users={filteredUsers} />
       )}
