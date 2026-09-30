@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { INITIAL_USERS, CURRENT_USER } from '../data/mockUsers';
 import { INITIAL_CHATS, PERSONA_RESPONSES, SAMPLE_PHOTOS } from '../data/initialChats';
+import { supabase, isSupabaseConfigured, SUPABASE_PROJECT_ID } from '../lib/supabaseClient';
 
 const AppContext = createContext();
 
@@ -61,6 +62,9 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : CURRENT_USER;
   });
 
+  // Supabase Cloud Connection Status
+  const [supabaseConnected, setSupabaseConnected] = useState(isSupabaseConfigured);
+
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState('signin'); // 'signin' | 'signup'
@@ -98,6 +102,64 @@ export const AppProvider = ({ children }) => {
 
   // Typing indicators: { [userId]: boolean }
   const [isTyping, setIsTyping] = useState({});
+
+  // Listen to Supabase Auth State changes on mount
+  useEffect(() => {
+    if (!supabase) return;
+
+    // Check active Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setSupabaseConnected(true);
+        const u = session.user;
+        const meta = u.user_metadata || {};
+        setCurrentUser({
+          id: u.id,
+          name: meta.name || meta.full_name || u.email?.split('@')[0] || 'Aura Member',
+          email: u.email,
+          age: meta.age || 24,
+          location: meta.location || 'Mumbai',
+          bio: meta.bio || 'Connected via Supabase Cloud Auth ✨',
+          avatar: meta.avatar || meta.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80',
+          occupation: meta.occupation || 'Creative Explorer',
+          interests: meta.interests || ['Coffee', 'Music', 'Design'],
+          authProvider: u.app_metadata?.provider || 'supabase',
+          verified: true
+        });
+        setIsAuthenticated(true);
+      }
+    }).catch(err => {
+      console.warn('Supabase session lookup:', err);
+    });
+
+    // Subscribe to auth state updates
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const u = session.user;
+        const meta = u.user_metadata || {};
+        setCurrentUser({
+          id: u.id,
+          name: meta.name || meta.full_name || u.email?.split('@')[0] || 'Aura Member',
+          email: u.email,
+          age: meta.age || 24,
+          location: meta.location || 'Mumbai',
+          bio: meta.bio || 'Connected via Supabase Cloud Auth ✨',
+          avatar: meta.avatar || meta.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80',
+          occupation: meta.occupation || 'Creative Explorer',
+          interests: meta.interests || ['Coffee', 'Music', 'Design'],
+          authProvider: u.app_metadata?.provider || 'supabase',
+          verified: true
+        });
+        setIsAuthenticated(true);
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
 
   // Sync to local storage
   useEffect(() => {
@@ -139,8 +201,42 @@ export const AppProvider = ({ children }) => {
     setIsAuthModalOpen(true);
   };
 
-  // Login with Email & Password
-  const loginWithEmail = (email, password) => {
+  // Login with Email & Password (with live Supabase Auth integration)
+  const loginWithEmail = async (email, password) => {
+    // 1. First attempt Supabase Authentication
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (!error && data?.user) {
+        const u = data.user;
+        const meta = u.user_metadata || {};
+        const account = {
+          id: u.id,
+          name: meta.name || u.email.split('@')[0],
+          email: u.email,
+          age: meta.age || 24,
+          location: meta.location || 'Mumbai',
+          bio: meta.bio || 'Verified Supabase User',
+          avatar: meta.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80',
+          occupation: meta.occupation || 'Aura Member',
+          interests: meta.interests || ['Coffee', 'Music'],
+          authProvider: 'supabase',
+          verified: true
+        };
+
+        setCurrentUser(account);
+        setIsAuthenticated(true);
+        triggerConfetti();
+        return { success: true, account };
+      }
+    } catch (err) {
+      console.log('Supabase sign-in fallback to local accounts:', err.message);
+    }
+
+    // 2. Fallback to local accounts (for demo users like dev@aura.dating)
     const account = registeredAccounts.find(
       a => a.email?.toLowerCase() === email?.toLowerCase()
     );
@@ -160,8 +256,8 @@ export const AppProvider = ({ children }) => {
     return { success: true, account };
   };
 
-  // Login with Google OAuth
-  const loginWithGoogle = (googleProfile) => {
+  // Login with Google OAuth (with Supabase OAuth sync)
+  const loginWithGoogle = async (googleProfile) => {
     let existing = registeredAccounts.find(
       a => a.email?.toLowerCase() === googleProfile.email?.toLowerCase()
     );
@@ -174,7 +270,7 @@ export const AppProvider = ({ children }) => {
         password: 'google_oauth_token',
         age: googleProfile.age || 24,
         location: googleProfile.location || 'Mumbai, Downtown',
-        bio: 'Google verified explorer. Lover of good coffee & deep conversations! ✨',
+        bio: 'Google verified explorer on Supabase. Lover of good coffee & deep conversations! ✨',
         avatar: googleProfile.avatar,
         occupation: 'Product Architect',
         interests: ['Tech', 'Design', 'Coffee', 'Travel'],
@@ -191,10 +287,58 @@ export const AppProvider = ({ children }) => {
     return { success: true, account: existing };
   };
 
-  // Sign Up new User
-  const signUp = (userData) => {
+  // Sign Up new User (with live Supabase Auth creation)
+  const signUp = async (userData) => {
+    const email = userData.email.trim();
+    const password = userData.password;
+
+    // 1. Register with Supabase Auth
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: userData.name.trim(),
+            age: Number(userData.age) || 23,
+            location: userData.location || 'Mumbai',
+            bio: userData.bio || 'Hello there! Excited to connect on AURA.',
+            avatar: userData.avatar,
+            occupation: userData.occupation || 'Creative Explorer',
+            interests: userData.interests || ['Coffee', 'Music'],
+          }
+        }
+      });
+
+      if (!error && data?.user) {
+        const newAccount = {
+          id: data.user.id,
+          name: userData.name.trim(),
+          email,
+          password,
+          age: Number(userData.age) || 23,
+          location: userData.location || 'Mumbai',
+          bio: userData.bio || 'Hello there! Excited to connect on AURA.',
+          avatar: userData.avatar,
+          occupation: userData.occupation || 'Creative Explorer',
+          interests: userData.interests || ['Coffee', 'Music'],
+          authProvider: 'supabase',
+          verified: true
+        };
+
+        setRegisteredAccounts(prev => [newAccount, ...prev]);
+        setCurrentUser(newAccount);
+        setIsAuthenticated(true);
+        triggerConfetti();
+        return { success: true, account: newAccount };
+      }
+    } catch (err) {
+      console.log('Supabase sign-up fallback to local accounts:', err.message);
+    }
+
+    // 2. Local fallback registration
     const existing = registeredAccounts.find(
-      a => a.email?.toLowerCase() === userData.email?.toLowerCase()
+      a => a.email?.toLowerCase() === email.toLowerCase()
     );
 
     if (existing) {
@@ -204,8 +348,8 @@ export const AppProvider = ({ children }) => {
     const newAccount = {
       id: 'usr-' + Date.now(),
       name: userData.name.trim(),
-      email: userData.email.trim(),
-      password: userData.password,
+      email,
+      password,
       age: Number(userData.age) || 23,
       location: userData.location || 'Mumbai',
       bio: userData.bio || 'Hello there! Excited to connect on AURA.',
@@ -223,8 +367,13 @@ export const AppProvider = ({ children }) => {
     return { success: true, account: newAccount };
   };
 
-  // Logout
-  const logout = () => {
+  // Logout (Calls Supabase signOut)
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.log('Supabase signOut error:', err);
+    }
     setIsAuthenticated(false);
   };
 
@@ -527,7 +676,9 @@ export const AppProvider = ({ children }) => {
         isTyping,
         switchPersona,
         totalUnreadCount,
-        triggerConfetti
+        triggerConfetti,
+        supabaseConnected,
+        supabaseProjectId: SUPABASE_PROJECT_ID
       }}
     >
       {children}

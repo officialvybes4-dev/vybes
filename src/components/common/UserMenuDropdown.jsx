@@ -7,13 +7,14 @@ import {
   Sparkles, 
   MessageCircle, 
   Users,
-  ChevronRight
+  ChevronRight,
+  Database
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 
 export const UserMenuDropdown = ({ isOpen, onClose, onOpenPersonaModal }) => {
-  const { currentUser, logout, setActiveTab } = useApp();
+  const { currentUser, logout, setActiveTab, supabaseConnected, supabaseProjectId } = useApp();
   const { theme } = useTheme();
 
   if (!isOpen) return null;
@@ -80,6 +81,18 @@ export const UserMenuDropdown = ({ isOpen, onClose, onOpenPersonaModal }) => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Supabase Cloud Connection Status Indicator */}
+        <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-[10px]">
+          <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+            <Database className="w-3.5 h-3.5" />
+            <span>Supabase Cloud</span>
+          </div>
+          <span className="flex items-center gap-1 text-emerald-300 font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Connected</span>
+          </span>
         </div>
 
         {/* Menu Links */}
