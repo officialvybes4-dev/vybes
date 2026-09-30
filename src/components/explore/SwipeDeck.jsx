@@ -10,10 +10,17 @@ import {
   RotateCcw,
   Sparkles,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Flame,
+  Moon,
+  Zap,
+  Volume2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { sounds } from '../../lib/soundFx';
+import { ZodiacMatchModal } from '../features/ZodiacMatchModal';
+import { ThisOrThatModal } from '../features/ThisOrThatModal';
 
 export const SwipeDeck = ({ users }) => {
   const { 
@@ -23,19 +30,29 @@ export const SwipeDeck = ({ users }) => {
     startChatWith, 
     setDetailUser,
     likesGiven,
-    dislikes 
+    dislikes,
+    triggerConfetti
   } = useApp();
   const { theme } = useTheme();
 
-  // Filter out already swiped users
-  const activeDeck = users.filter(u => !likesGiven.includes(u.id) && !dislikes.includes(u.id));
-
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Track history for Rewind (undo) functionality
+  const [swipeHistory, setSwipeHistory] = useState([]);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState(null); // 'left' | 'right' | 'up'
 
-  const currentUserCard = activeDeck[currentIndex];
-  const nextUserCard = activeDeck[currentIndex + 1];
+  // Modals for quick features
+  const [isZodiacOpen, setIsZodiacOpen] = useState(false);
+  const [isThisOrThatOpen, setIsThisOrThatOpen] = useState(false);
+
+  // Filter out already swiped users (excluding rewound ones)
+  const activeDeck = users.filter(u => {
+    // If user was recently swiped in history and not undone, exclude
+    const inHistory = swipeHistory.some(h => h.user.id === u.id);
+    return !inHistory && !likesGiven.includes(u.id) && !dislikes.includes(u.id);
+  });
+
+  const currentUserCard = activeDeck[0];
+  const nextUserCard = activeDeck[1];
 
   const handleNextPhoto = (e) => {
     e.stopPropagation();
@@ -54,7 +71,10 @@ export const SwipeDeck = ({ users }) => {
   const handlePass = (e) => {
     e?.stopPropagation();
     if (!currentUserCard) return;
+    sounds.playPop();
     setSwipeDirection('left');
+    setSwipeHistory(prev => [{ user: currentUserCard, action: 'pass' }, ...prev]);
+
     setTimeout(() => {
       passUser(currentUserCard.id);
       setSwipeDirection(null);
@@ -65,7 +85,10 @@ export const SwipeDeck = ({ users }) => {
   const handleLike = (e) => {
     e?.stopPropagation();
     if (!currentUserCard) return;
+    sounds.playMatchChime();
     setSwipeDirection('right');
+    setSwipeHistory(prev => [{ user: currentUserCard, action: 'like' }, ...prev]);
+
     setTimeout(() => {
       likeUser(currentUserCard.id);
       setSwipeDirection(null);
@@ -76,12 +99,26 @@ export const SwipeDeck = ({ users }) => {
   const handleSuperLike = (e) => {
     e?.stopPropagation();
     if (!currentUserCard) return;
+    sounds.playSuperLike();
     setSwipeDirection('up');
+    setSwipeHistory(prev => [{ user: currentUserCard, action: 'superlike' }, ...prev]);
+
     setTimeout(() => {
       superLikeUser(currentUserCard.id);
       setSwipeDirection(null);
       setPhotoIndex(0);
     }, 300);
+  };
+
+  // Rewind: Undo last swipe action!
+  const handleRewind = (e) => {
+    e?.stopPropagation();
+    if (swipeHistory.length === 0) return;
+    sounds.playRewind();
+
+    const lastSwiped = swipeHistory[0];
+    setSwipeHistory(prev => prev.slice(1));
+    triggerConfetti();
   };
 
   const handleInstantChat = (e) => {
@@ -90,29 +127,39 @@ export const SwipeDeck = ({ users }) => {
     startChatWith(currentUserCard.id);
   };
 
-  // Reset swiped cards
   const handleReset = () => {
     localStorage.removeItem('aura_chats');
+    setSwipeHistory([]);
     window.location.reload();
   };
 
   if (!currentUserCard) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center h-[calc(100dvh-200px)] min-h-[380px]">
-        <div className="w-16 h-16 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mb-4 shadow-xl">
           <Sparkles className="w-8 h-8 animate-bounce" />
         </div>
         <h3 className="text-lg font-bold text-white">You've explored everyone for now!</h3>
         <p className="text-xs text-gray-400 mt-1 max-w-xs">
-          Check out your active chats or reset the stack to view profiles again.
+          Check out your active matches or reset the stack to view profiles again.
         </p>
-        <button
-          onClick={handleReset}
-          className={`mt-5 px-5 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2 ${theme.buttonClass} transition-transform active:scale-95 shadow-md`}
-        >
-          <RotateCcw className="w-4 h-4" />
-          <span>Reset Deck</span>
-        </button>
+        <div className="flex items-center gap-3 mt-5">
+          {swipeHistory.length > 0 && (
+            <button
+              onClick={handleRewind}
+              className="px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-md"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Rewind Last Profile</span>
+            </button>
+          )}
+          <button
+            onClick={handleReset}
+            className={`px-5 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2 ${theme.buttonClass} shadow-md`}
+          >
+            <span>Reset Stack</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -145,7 +192,7 @@ export const SwipeDeck = ({ users }) => {
             : 'translate-x-0 rotate-0 opacity-100'
         }`}
       >
-        {/* Swipe Visual Feedback Badges */}
+        {/* Swipe Feedback Badges */}
         {swipeDirection === 'right' && (
           <div className="absolute top-6 left-6 z-30 px-3.5 py-1.5 border-4 border-emerald-400 rounded-2xl text-emerald-400 font-black text-xl uppercase tracking-wider rotate-[-15deg] shadow-lg backdrop-blur-md">
             LIKE ❤️
@@ -182,6 +229,42 @@ export const SwipeDeck = ({ users }) => {
             ))}
           </div>
         )}
+
+        {/* Top Floating Feature Badges */}
+        <div className="absolute top-5 inset-x-3 flex items-center justify-between z-20 pointer-events-auto">
+          {/* Response time badge */}
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/60 text-amber-300 border border-amber-400/40 backdrop-blur-md flex items-center gap-1">
+            <Zap className="w-3 h-3 fill-amber-400" />
+            <span>{currentUserCard.responseTime || '< 5m'}</span>
+          </span>
+
+          {/* Quick Feature Shortcut Pills */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsZodiacOpen(true);
+              }}
+              className="px-2 py-1 rounded-full text-[10px] font-bold bg-black/60 text-purple-300 border border-purple-400/40 backdrop-blur-md flex items-center gap-1 hover:scale-105 active:scale-95 transition-transform"
+              title="Cosmic Synastry Radar"
+            >
+              <Moon className="w-3 h-3 text-purple-400" />
+              <span>Synastry</span>
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsThisOrThatOpen(true);
+              }}
+              className="px-2 py-1 rounded-full text-[10px] font-bold bg-black/60 text-rose-300 border border-rose-400/40 backdrop-blur-md flex items-center gap-1 hover:scale-105 active:scale-95 transition-transform"
+              title="Play This or That Chemistry"
+            >
+              <Flame className="w-3 h-3 text-rose-400" />
+              <span>Battle</span>
+            </button>
+          </div>
+        </div>
 
         {/* Touch Hotspots for Photo Switching */}
         <div className="absolute inset-0 flex z-10">
@@ -228,24 +311,41 @@ export const SwipeDeck = ({ users }) => {
             {currentUserCard.bio}
           </p>
 
-          {/* Interests Chips */}
-          {currentUserCard.interests && (
-            <div className="flex flex-wrap gap-1 mt-2 pointer-events-auto">
-              {currentUserCard.interests.slice(0, 3).map((tag, i) => (
-                <span
-                  key={i}
-                  className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-white/20 text-white backdrop-blur-md border border-white/20"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
+          {/* Interests & Anthem Chips */}
+          <div className="flex flex-wrap gap-1 mt-2 pointer-events-auto items-center">
+            {currentUserCard.anthem && (
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 backdrop-blur-md">
+                🎵 {currentUserCard.anthem.title}
+              </span>
+            )}
+            {currentUserCard.interests && currentUserCard.interests.slice(0, 2).map((tag, i) => (
+              <span
+                key={i}
+                className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-white/20 text-white backdrop-blur-md border border-white/20"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Bottom Tactile Action Buttons Dock */}
         <div className="absolute inset-x-0 bottom-2.5 px-3 flex items-center justify-between z-30">
           
+          {/* Rewind / Undo Button (Feature #14) */}
+          <button
+            onClick={handleRewind}
+            disabled={swipeHistory.length === 0}
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-lg backdrop-blur-md transition-transform active:scale-90 ${
+              swipeHistory.length > 0 
+                ? 'bg-slate-950/85 hover:bg-amber-500/20 text-amber-400 border border-amber-500/40' 
+                : 'bg-slate-950/40 text-gray-600 border border-white/5 cursor-not-allowed'
+            }`}
+            title="Rewind (Undo Last Swipe)"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+
           {/* Pass Button (❌) */}
           <button
             onClick={handlePass}
@@ -264,7 +364,7 @@ export const SwipeDeck = ({ users }) => {
             <Star className="w-4 h-4 fill-amber-400" />
           </button>
 
-          {/* Instant Direct Chat Button ("koi kisi se bhi chatting kar sake") */}
+          {/* Instant Direct Chat Button */}
           <button
             onClick={handleInstantChat}
             className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl flex items-center gap-1.5 font-bold text-[11px] sm:text-xs ${theme.buttonClass} shadow-lg shadow-rose-500/30 transition-transform active:scale-90`}
@@ -286,6 +386,21 @@ export const SwipeDeck = ({ users }) => {
         </div>
 
       </div>
+
+      {/* Cosmic Synastry Modal */}
+      <ZodiacMatchModal
+        isOpen={isZodiacOpen}
+        onClose={() => setIsZodiacOpen(false)}
+        targetUser={currentUserCard}
+      />
+
+      {/* This or That Chemistry Modal */}
+      <ThisOrThatModal
+        isOpen={isThisOrThatOpen}
+        onClose={() => setIsThisOrThatOpen(false)}
+        partnerUser={currentUserCard}
+      />
+
     </div>
   );
 };

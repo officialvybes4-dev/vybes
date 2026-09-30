@@ -9,15 +9,32 @@ import {
   GraduationCap, 
   ShieldCheck, 
   ChevronLeft, 
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  QrCode,
+  Moon,
+  Flame,
+  CheckCircle2,
+  Mic,
+  Zap
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { SpotifyAnthemPlayer } from '../features/SpotifyAnthemPlayer';
+import { ZodiacMatchModal } from '../features/ZodiacMatchModal';
+import { ThisOrThatModal } from '../features/ThisOrThatModal';
+import { QrShareModal } from '../features/QrShareModal';
+import { VoiceNotePlayer } from '../chat/VoiceNotePlayer';
+import { sounds } from '../../lib/soundFx';
 
 export const ProfileDetailModal = () => {
   const { detailUser, setDetailUser, likeUser, superLikeUser, startChatWith, setPreviewImage } = useApp();
   const { theme } = useTheme();
+  
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [isZodiacOpen, setIsZodiacOpen] = useState(false);
+  const [isThisOrThatOpen, setIsThisOrThatOpen] = useState(false);
+  const [isQrOpen, setIsQrOpen] = useState(false);
 
   if (!detailUser) return null;
 
@@ -42,11 +59,13 @@ export const ProfileDetailModal = () => {
   };
 
   const handleLike = () => {
+    sounds.playMatchChime();
     likeUser(detailUser.id);
     setDetailUser(null);
   };
 
   const handleSuperLike = () => {
+    sounds.playSuperLike();
     superLikeUser(detailUser.id);
     setDetailUser(null);
   };
@@ -57,13 +76,25 @@ export const ProfileDetailModal = () => {
         className={`w-full max-w-2xl h-[94dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border-t sm:border shadow-2xl relative flex flex-col ${theme.cardBg}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Floating Close Button */}
-        <button
-          onClick={() => setDetailUser(null)}
-          className="absolute top-3 right-3 z-30 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 transition-transform active:scale-90"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Top Header Buttons */}
+        <div className="absolute top-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
+          {/* Share QR Pass */}
+          <button
+            onClick={() => setIsQrOpen(true)}
+            className="p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 transition-transform active:scale-90 pointer-events-auto"
+            title="VIP Holographic Pass"
+          >
+            <QrCode className="w-4 h-4" />
+          </button>
+
+          {/* Floating Close Button */}
+          <button
+            onClick={() => setDetailUser(null)}
+            className="p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 transition-transform active:scale-90 pointer-events-auto"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Scrollable Content Body */}
         <div className="flex-1 overflow-y-auto">
@@ -78,7 +109,7 @@ export const ProfileDetailModal = () => {
 
             {/* Top Progress Bars for Photos */}
             {photos.length > 1 && (
-              <div className="absolute top-2.5 left-3 right-14 flex items-center gap-1 z-20">
+              <div className="absolute top-2.5 left-14 right-14 flex items-center gap-1 z-20">
                 {photos.map((_, i) => (
                   <div
                     key={i}
@@ -135,6 +166,33 @@ export const ProfileDetailModal = () => {
             </div>
           </div>
 
+          {/* Quick Compatibility Actions Hub */}
+          <div className="px-4 sm:px-6 py-3 border-b border-white/10 bg-white/5 flex items-center justify-between gap-2 overflow-x-auto">
+            <button
+              onClick={() => setIsZodiacOpen(true)}
+              className="flex-1 py-2 px-3 rounded-2xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-95 whitespace-nowrap"
+            >
+              <Moon className="w-3.5 h-3.5 text-purple-400" />
+              <span>Cosmic Synastry</span>
+            </button>
+
+            <button
+              onClick={() => setIsThisOrThatOpen(true)}
+              className="flex-1 py-2 px-3 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-95 whitespace-nowrap"
+            >
+              <Flame className="w-3.5 h-3.5 text-rose-400" />
+              <span>Chemistry Battle</span>
+            </button>
+
+            <button
+              onClick={() => setIsQrOpen(true)}
+              className="py-2 px-3 rounded-2xl bg-white/10 hover:bg-white/20 text-gray-300 border border-white/10 text-xs font-bold flex items-center justify-center gap-1.5 transition-transform active:scale-95 whitespace-nowrap"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>VIP Pass</span>
+            </button>
+          </div>
+
           {/* Details Body */}
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             
@@ -145,6 +203,38 @@ export const ProfileDetailModal = () => {
                 {detailUser.bio}
               </p>
             </div>
+
+            {/* Spotify Anthem Player (Feature #7) */}
+            <div>
+              <h3 className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-gray-400 mb-1.5">Dating Anthem</h3>
+              <SpotifyAnthemPlayer anthem={detailUser.anthem} userName={detailUser.name} />
+            </div>
+
+            {/* Voice Clip if available */}
+            {detailUser.voiceNote && (
+              <div>
+                <h3 className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-gray-400 mb-1.5">Audio Bio Sample</h3>
+                <VoiceNotePlayer voiceNote={detailUser.voiceNote} isMe={false} />
+              </div>
+            )}
+
+            {/* Green Flags (Feature #18) */}
+            {detailUser.greenFlags && detailUser.greenFlags.length > 0 && (
+              <div>
+                <h3 className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-emerald-400 mb-1.5 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Green Flags</span>
+                </h3>
+                <div className="space-y-1.5">
+                  {detailUser.greenFlags.map((flag, idx) => (
+                    <div key={idx} className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span>{flag}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Work & Education */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -218,10 +308,10 @@ export const ProfileDetailModal = () => {
                   <p className="text-xs font-bold text-white mt-0.5">{detailUser.drinking}</p>
                 </div>
               )}
-              {detailUser.lookingFor && (
+              {detailUser.datingIntent && (
                 <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                  <p className="text-[9px] text-gray-400 uppercase font-bold">Looking For</p>
-                  <p className="text-xs font-bold text-white mt-0.5 truncate">{detailUser.lookingFor}</p>
+                  <p className="text-[9px] text-gray-400 uppercase font-bold">Intent</p>
+                  <p className="text-xs font-bold text-white mt-0.5 truncate">{detailUser.datingIntent}</p>
                 </div>
               )}
             </div>
@@ -229,7 +319,7 @@ export const ProfileDetailModal = () => {
           </div>
         </div>
 
-        {/* Docked Action Footer (Thumb Friendly with Safe Area) */}
+        {/* Docked Action Footer */}
         <div className="p-3 sm:p-4 bg-black/40 backdrop-blur-xl border-t border-white/10 flex items-center gap-2 sm:gap-3 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             onClick={handleSuperLike}
@@ -257,6 +347,26 @@ export const ProfileDetailModal = () => {
         </div>
 
       </div>
+
+      {/* Embedded Feature Modals */}
+      <ZodiacMatchModal
+        isOpen={isZodiacOpen}
+        onClose={() => setIsZodiacOpen(false)}
+        targetUser={detailUser}
+      />
+
+      <ThisOrThatModal
+        isOpen={isThisOrThatOpen}
+        onClose={() => setIsThisOrThatOpen(false)}
+        partnerUser={detailUser}
+      />
+
+      <QrShareModal
+        isOpen={isQrOpen}
+        onClose={() => setIsQrOpen(false)}
+        user={detailUser}
+      />
+
     </div>
   );
 };

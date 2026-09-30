@@ -11,13 +11,33 @@ import {
   Plus, 
   X,
   Palette,
-  Users
+  Users,
+  QrCode,
+  Volume2,
+  VolumeX,
+  EyeOff,
+  Zap,
+  Moon,
+  Smile
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { sounds } from '../../lib/soundFx';
+import { QrShareModal } from '../features/QrShareModal';
+import { VerificationModal } from '../features/VerificationModal';
+import { LoveTarotModal } from '../features/LoveTarotModal';
+
+const VIBE_STATUSES = [
+  'Craving boba & deep talks 🧋',
+  'Looking for a concert buddy 🎸',
+  'Sunset drive & cozy chai ☕',
+  'Spontaneous weekend roadtrip 🚗',
+  'Need sushi & anime recs 🍣',
+  'Gym partner & workout vibes 🏋️'
+];
 
 export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
-  const { currentUser, updateUserProfile } = useApp();
+  const { currentUser, updateUserProfile, triggerConfetti } = useApp();
   const { theme } = useTheme();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -28,9 +48,15 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
     occupation: currentUser.occupation || '',
     bio: currentUser.bio,
     avatar: currentUser.avatar,
-    interests: currentUser.interests || []
+    interests: currentUser.interests || [],
+    vibeStatus: currentUser.vibeStatus || VIBE_STATUSES[0],
+    incognito: currentUser.incognito || false
   });
 
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const [isVerificationOpen, setIsVerificationOpen] = useState(false);
+  const [isTarotOpen, setIsTarotOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(sounds.enabled);
   const [newTag, setNewTag] = useState('');
   const [saveToast, setSaveToast] = useState(false);
 
@@ -38,6 +64,7 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
     e.preventDefault();
     updateUserProfile(formData);
     setIsEditing(false);
+    sounds.playSuccess();
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 3000);
   };
@@ -58,8 +85,20 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
     }));
   };
 
+  const toggleSound = () => {
+    const nextState = sounds.toggleSound();
+    setSoundEnabled(nextState);
+  };
+
+  const handleSelectVibe = (vibe) => {
+    sounds.playPop();
+    setFormData(prev => ({ ...prev, vibeStatus: vibe }));
+    updateUserProfile({ vibeStatus: vibe });
+    triggerConfetti();
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
       
       {/* Toast Notification */}
       {saveToast && (
@@ -70,27 +109,47 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
       )}
 
       {/* Main Profile Header Card */}
-      <div className={`p-6 sm:p-8 rounded-3xl border relative overflow-hidden ${theme.cardBg}`}>
+      <div className={`p-5 sm:p-8 rounded-3xl border relative overflow-hidden ${theme.cardBg}`}>
         
         {/* Actions Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-white/10">
           <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
               <User className="w-5 h-5" />
             </span>
             <div>
               <h1 className="text-xl font-black text-white tracking-tight">Your Dating Profile</h1>
-              <p className="text-xs text-gray-400">Manage how prospective matches discover you</p>
+              <p className="text-xs text-gray-400">Manage VIP pass, biometric verification & preferences</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Sound Effects Toggle */}
+            <button
+              onClick={toggleSound}
+              className={`p-2 rounded-xl text-xs font-semibold border flex items-center gap-1 transition-colors ${
+                soundEnabled ? 'bg-white/10 text-white border-white/20' : 'bg-white/5 text-gray-400 border-white/10'
+              }`}
+              title={soundEnabled ? 'Mute Sound FX' : 'Enable Sound FX'}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-gray-500" />}
+            </button>
+
+            {/* VIP Pass Modal */}
+            <button
+              onClick={() => setIsQrOpen(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-pink-500/20 to-rose-500/20 hover:from-pink-500/30 hover:to-rose-500/30 text-rose-300 border border-rose-500/30 flex items-center gap-1.5 transition-colors"
+            >
+              <QrCode className="w-3.5 h-3.5 text-rose-400" />
+              <span>VIP Pass</span>
+            </button>
+
             <button
               onClick={onOpenPersonaModal}
               className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 flex items-center gap-1.5 transition-colors"
             >
               <Users className="w-3.5 h-3.5 text-rose-400" />
-              <span>Switch Persona</span>
+              <span>Persona</span>
             </button>
 
             <button
@@ -108,14 +167,14 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
               }`}
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>{isEditing ? 'Cancel' : 'Edit Profile'}</span>
+              <span>{isEditing ? 'Cancel' : 'Edit'}</span>
             </button>
           </div>
         </div>
 
         {/* Profile Content View / Edit Mode */}
         {!isEditing ? (
-          <div className="pt-6 grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+          <div className="pt-6 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-start">
             
             {/* Avatar & Photo Showcase */}
             <div className="md:col-span-4 flex flex-col items-center text-center">
@@ -125,10 +184,18 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
                   alt={currentUser.name}
                   className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover ring-4 ring-rose-500/40 shadow-2xl"
                 />
-                {currentUser.verified && (
-                  <span className="absolute bottom-2 right-2 p-1.5 bg-blue-500 rounded-full text-white shadow-md">
+                {currentUser.verified ? (
+                  <span className="absolute bottom-2 right-2 p-1.5 bg-blue-500 rounded-full text-white shadow-md" title="Verified Human">
                     <ShieldCheck className="w-4 h-4" />
                   </span>
+                ) : (
+                  <button
+                    onClick={() => setIsVerificationOpen(true)}
+                    className="absolute bottom-2 right-2 px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-lg flex items-center gap-1 animate-pulse"
+                  >
+                    <ShieldCheck className="w-3 h-3" />
+                    <span>Get Verified</span>
+                  </button>
                 )}
               </div>
 
@@ -142,10 +209,39 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
                   <span>{currentUser.location}</span>
                 </p>
               </div>
+
+              {/* Vibe Status Pill */}
+              <div className="mt-3 px-3 py-1.5 rounded-2xl bg-white/5 border border-white/10 text-xs text-amber-300 font-medium max-w-xs">
+                {currentUser.vibeStatus || 'Looking for good banter & coffee ✨'}
+              </div>
             </div>
 
             {/* Profile Bio & Details */}
-            <div className="md:col-span-8 space-y-5">
+            <div className="md:col-span-8 space-y-4">
+              
+              {/* Daily Mood / Vibe Status Quick Picker (Feature #21) */}
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
+                  <Smile className="w-3.5 h-3.5" />
+                  <span>Today's Dating Mood & Vibe</span>
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {VIBE_STATUSES.map((vibe, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSelectVibe(vibe)}
+                      className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
+                        (currentUser.vibeStatus || VIBE_STATUSES[0]) === vibe
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 font-bold shadow-sm'
+                          : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      {vibe}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Bio</h3>
                 <p className="text-sm text-gray-200 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/10">
@@ -167,21 +263,39 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
                 </div>
               </div>
 
-              {/* Dating Verification Banner */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-500/20 via-pink-500/10 to-amber-500/20 border border-rose-500/30 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-rose-500/30 text-rose-300">
-                    <ShieldCheck className="w-6 h-6" />
+              {/* Quick Feature Launchers Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={() => setIsVerificationOpen(true)}
+                  className="p-3.5 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 flex items-center justify-between text-left transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="w-5 h-5 text-blue-400" />
+                    <div>
+                      <h4 className="text-xs font-bold text-white">AI Face Verification</h4>
+                      <p className="text-[10px] text-gray-400">Unlock official verified shield</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Verified Authentic Dating Profile</h4>
-                    <p className="text-[11px] text-gray-300">Your profile is 100% verified for direct chats</p>
+                  <span className="text-[10px] font-bold text-blue-400 uppercase">
+                    {currentUser.verified ? 'Verified ✓' : 'Scan'}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setIsTarotOpen(true)}
+                  className="p-3.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 flex items-center justify-between text-left transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Moon className="w-5 h-5 text-amber-400" />
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Daily Love Tarot</h4>
+                      <p className="text-[10px] text-gray-400">Draw Cupid's daily oracle</p>
+                    </div>
                   </div>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
-                  Active
-                </span>
+                  <span className="text-[10px] font-bold text-amber-400 uppercase">Draw</span>
+                </button>
               </div>
+
             </div>
 
           </div>
@@ -311,6 +425,23 @@ export const MyProfilePage = ({ onOpenThemePicker, onOpenPersonaModal }) => {
         )}
 
       </div>
+
+      {/* Feature Modals */}
+      <QrShareModal
+        isOpen={isQrOpen}
+        onClose={() => setIsQrOpen(false)}
+        user={currentUser}
+      />
+
+      <VerificationModal
+        isOpen={isVerificationOpen}
+        onClose={() => setIsVerificationOpen(false)}
+      />
+
+      <LoveTarotModal
+        isOpen={isTarotOpen}
+        onClose={() => setIsTarotOpen(false)}
+      />
 
     </div>
   );
